@@ -1,12 +1,39 @@
 import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getLeads().then(setLeads).catch((err) => setError(err.message));
+    async function loadLeads() {
+      const { data: visits, error: visitsError } = await supabase
+        .from('visits')
+        .select(`
+          id,
+          status,
+          service_type,
+          follow_up_date,
+          house_id,
+          houses (
+            address,
+            city,
+            state,
+            zip
+          )
+        `)
+        .or('status.eq.Interested,not.follow_up_date.is.null')
+        .order('visited_at', { ascending: false });
+
+      if (visitsError) {
+        setError(visitsError.message);
+        return;
+      }
+
+      setLeads(visits || []);
+    }
+
+    loadLeads();
   }, []);
 
   return (
@@ -17,18 +44,28 @@ export default function LeadsPage() {
           <p>Houses that need follow-up or already showed interest.</p>
         </div>
       </div>
+
       {error && <div className="error-box">{error}</div>}
+
       <div className="card list-card">
-        {leads.length === 0 ? <p>No leads yet.</p> : leads.map((lead, index) => (
-          <div key={`${lead.address}-${index}`} className="simple-row bordered">
-            <div>
-              <strong>{lead.address}</strong>
-              <span>{lead.city}, {lead.state} {lead.zip}</span>
-              <span>{lead.status} • {lead.service_type || 'Unknown'}</span>
+        {leads.length === 0 ? (
+          <p>No leads yet.</p>
+        ) : (
+          leads.map((lead) => (
+            <div key={lead.id} className="simple-row bordered">
+              <div>
+                <strong>{lead.houses?.address}</strong>
+                <span>
+                  {lead.houses?.city}, {lead.houses?.state} {lead.houses?.zip}
+                </span>
+                <span>
+                  {lead.status} • {lead.service_type || 'Unknown'}
+                </span>
+              </div>
+              <small>{lead.follow_up_date || 'No follow-up date'}</small>
             </div>
-            <small>{lead.follow_up_date || 'No follow-up date'}</small>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

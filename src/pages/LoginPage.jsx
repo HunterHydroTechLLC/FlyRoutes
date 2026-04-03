@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { supabase } from "../lib/supabase";
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,26 +24,45 @@ export default function LoginPage() {
       return;
     }
 
-    alert('Login successful');
+    navigate('/');
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
-      />
-      <button type="submit" disabled={loading}>
-        {loading ? 'Signing in...' : 'Login'}
-      </button>
-    </form>
+    <div className="auth-page">
+      <div className="card auth-card">
+        <h2 style={{ marginTop: 0 }}>FlyRoutes Login</h2>
+        <p style={{ color: '#475569' }}>
+          Sign in to manage houses, routes, and leads.
+        </p>
+
+        <form onSubmit={handleLogin} className="stack-form">
+          <div>
+            <label>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+            />
+          </div>
+
+          <button type="submit" disabled={loading}>
+            {loading ? 'Signing in...' : 'Login'}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

@@ -1,13 +1,11 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function Layout({ children }) {
-  const location = useLocation();
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('routes_user') || 'null');
 
-  function logout() {
-    localStorage.removeItem('routes_token');
-    localStorage.removeItem('routes_user');
+  async function logout() {
+    await supabase.auth.signOut();
     navigate('/login');
   }
 
@@ -25,19 +23,31 @@ export default function Layout({ children }) {
           <h1>Routes</h1>
           <p>Hunter HydroTech</p>
         </div>
+
         <nav>
           {links.map((link) => (
-            <Link key={link.to} className={location.pathname === link.to ? 'nav-link active' : 'nav-link'} to={link.to}>
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.to === '/'}
+              className={({ isActive }) =>
+                isActive ? 'nav-link active' : 'nav-link'
+              }
+            >
               {link.label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
+
         <div className="sidebar-footer">
-          <strong>{user?.name || 'User'}</strong>
-          <span>{user?.role || 'admin'}</span>
-          <button className="secondary" onClick={logout}>Log out</button>
+          <strong>Logged in</strong>
+          <span>Supabase Auth</span>
+          <button className="secondary" onClick={logout}>
+            Log out
+          </button>
         </div>
       </aside>
+
       <main className="main-content">{children}</main>
     </div>
   );

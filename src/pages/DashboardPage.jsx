@@ -1,16 +1,61 @@
 import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 export default function DashboardPage() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState({
+    totalHouses: 0,
+    visitsToday: 0,
+    followUpsDue: 0,
+    interestedLeads: 0,
+  });
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getDashboard().then(setData).catch((err) => setError(err.message));
+    async function loadDashboard() {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+
+        const [{ count: houseCount, error: houseError }, { count: visitCount, error: visitError }, { count: followUpCount, error: followUpError }, { count: interestedCount, error: interestedError }] =
+          await Promise.all([
+            supabase.from('houses').select('*', { count: 'exact', head: true }),
+            supabase
+              .from('visits')
+              .select('*', { count: 'exact', head: true })
+              .gte('visited_at', `${today}T00:00:00`)
+              .lte('visited_at', `${today}T23:59:59`),
+            supabase
+              .from('visits')
+              .select('*', { count: 'exact', head: true })
+              .not('follow_up_date', 'is', null)
+              .lte('follow_up_date', today),
+            supabase
+              .from('visits')
+              .select('*', { count: 'exact', head: true })
+              .eq('status', 'Interested'),
+          ]);
+
+        const firstError =
+          houseError || visitError || followUpError || interestedError;
+
+        if (firstError) {
+          throw firstError;
+        }
+
+        setData({
+          totalHouses: houseCount || 0,
+          visitsToday: visitCount || 0,
+          followUpsDue: followUpCount || 0,
+          interestedLeads: interestedCount || 0,
+        });
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+
+    loadDashboard();
   }, []);
 
   if (error) return <div className="error-box">{error}</div>;
-  if (!data) return <div className="card">Loading dashboard...</div>;
 
   const cards = [
     ['Total houses', data.totalHouses],
@@ -27,6 +72,7 @@ export default function DashboardPage() {
           <p>Quick view of today’s route and lead activity.</p>
         </div>
       </div>
+
       <div className="stats-grid">
         {cards.map(([label, value]) => (
           <div key={label} className="card stat-card">
@@ -35,9 +81,13 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
       <div className="card">
         <h3>Next build step</h3>
-        <p>This MVP is ready for your real data. Once it’s installed, we can add map pins, GPS logging, and photo uploads.</p>
+        <p>
+          Your login is live. Next we’ll connect houses, visits, follow-ups, and
+          leads to live Supabase data.
+        </p>
       </div>
     </div>
   );
