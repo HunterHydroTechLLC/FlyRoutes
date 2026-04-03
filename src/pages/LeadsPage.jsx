@@ -14,6 +14,7 @@ export default function LeadsPage() {
           status,
           service_type,
           follow_up_date,
+          visited_at,
           house_id,
           houses (
             address,
@@ -22,7 +23,6 @@ export default function LeadsPage() {
             zip
           )
         `)
-        .or('status.eq.Interested,not.follow_up_date.is.null')
         .order('visited_at', { ascending: false });
 
       if (visitsError) {
@@ -30,7 +30,11 @@ export default function LeadsPage() {
         return;
       }
 
-      setLeads(visits || []);
+      const filtered = (visits || []).filter(
+        (lead) => lead.status === 'Interested' || !!lead.follow_up_date
+      );
+
+      setLeads(filtered);
     }
 
     loadLeads();
@@ -54,9 +58,9 @@ export default function LeadsPage() {
           leads.map((lead) => (
             <div key={lead.id} className="simple-row bordered">
               <div>
-                <strong>{lead.houses?.address}</strong>
+                <strong>{lead.houses?.address || 'Unknown address'}</strong>
                 <span>
-                  {lead.houses?.city}, {lead.houses?.state} {lead.houses?.zip}
+                  {lead.houses?.city || ''}, {lead.houses?.state || ''} {lead.houses?.zip || ''}
                 </span>
                 <span>
                   {lead.status} • {lead.service_type || 'Unknown'}
