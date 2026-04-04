@@ -2,18 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import MapPicker from '../components/MapPicker';
 
-const [coords, setCoords] = useState(null);
-function handleMapSelect(latlng) {
-  setCoords(latlng);
-}
-<MapPicker onSelect={handleMapSelect} />
-
-{coords && (
-  <p style={{ marginTop: '0.5rem' }}>
-    Selected: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-  </p>
-)}
-
 const defaultHouse = {
   address: '',
   city: 'Sterling Heights',
@@ -40,6 +28,11 @@ export default function HousesPage() {
   const [success, setSuccess] = useState('');
   const [fastMode, setFastMode] = useState(true);
   const [savingQuick, setSavingQuick] = useState(false);
+  const [coords, setCoords] = useState(null);
+
+  function handleMapSelect(latlng) {
+    setCoords(latlng);
+  }
 
   async function loadHouses() {
     setError('');
@@ -136,6 +129,8 @@ export default function HousesPage() {
           city: houseForm.city,
           state: houseForm.state,
           zip: houseForm.zip,
+          latitude: coords?.lat || null,
+          longitude: coords?.lng || null,
         },
       ])
       .select()
@@ -147,6 +142,7 @@ export default function HousesPage() {
     }
 
     setHouseForm(defaultHouse);
+    setCoords(null);
     setSuccess('House saved.');
     await loadHouses();
     setSelectedHouse(data);
@@ -220,6 +216,8 @@ export default function HousesPage() {
           city: houseForm.city,
           state: houseForm.state,
           zip: houseForm.zip,
+          latitude: coords?.lat || null,
+          longitude: coords?.lng || null,
         },
       ])
       .select()
@@ -231,15 +229,16 @@ export default function HousesPage() {
       return;
     }
 
-const visitPayload = {
-  house_id: createdHouse.id,
-  user_id: user?.id || null,
-  status: statusValue,
-  material_left: overrides.material_left ?? visitForm.material_left,
-  service_type: overrides.service_type ?? visitForm.service_type,
-  notes: overrides.notes ?? visitForm.notes,
-  follow_up_date: overrides.follow_up_date ?? visitForm.follow_up_date || null,
-};
+    const visitPayload = {
+      house_id: createdHouse.id,
+      user_id: user?.id || null,
+      status: statusValue,
+      material_left: overrides.material_left ?? visitForm.material_left,
+      service_type: overrides.service_type ?? visitForm.service_type,
+      notes: overrides.notes ?? visitForm.notes,
+      follow_up_date:
+        overrides.follow_up_date ?? visitForm.follow_up_date || null,
+    };
 
     const { error: visitError } = await supabase
       .from('visits')
@@ -253,6 +252,7 @@ const visitPayload = {
 
     setHouseForm(defaultHouse);
     setVisitForm(defaultVisit);
+    setCoords(null);
     setSuccess(`${statusValue} saved.`);
     await loadHouses();
     setSelectedHouse(createdHouse);
@@ -348,6 +348,14 @@ const visitPayload = {
                     })
                   }
                 />
+
+                <MapPicker onSelect={handleMapSelect} />
+
+                {coords && (
+                  <p style={{ marginTop: '0.5rem' }}>
+                    Selected: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -415,6 +423,7 @@ const visitPayload = {
                   onClick={() => {
                     setHouseForm(defaultHouse);
                     setVisitForm(defaultVisit);
+                    setCoords(null);
                     setError('');
                     setSuccess('');
                   }}
