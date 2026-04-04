@@ -3,7 +3,64 @@
   color: #0f172a;
   background: #f8fafc;
 }
+.success-box {
+  background: #dcfce7;
+  color: #166534;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
 
+.fast-mode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fast-entry-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.soft-card {
+  background: #f8fafc;
+}
+
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.quick-action {
+  min-height: 68px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.quick-action.danger {
+  background: #b91c1c;
+}
+
+@media (max-width: 960px) {
+  .fast-mode-header,
+  .fast-entry-grid,
+  .quick-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fast-mode-header {
+    align-items: stretch;
+  }
+
+  .quick-action {
+    min-height: 60px;
+  }
+ 
+ 
 * { box-sizing: border-box; }
 body { margin: 0; }
 a { color: inherit; text-decoration: none; }

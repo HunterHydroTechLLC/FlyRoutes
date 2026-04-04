@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import MapPicker from '../components/MapPicker';
+
+const [coords, setCoords] = useState(null);
+function handleMapSelect(latlng) {
+  setCoords(latlng);
+}
+<MapPicker onSelect={handleMapSelect} />
+
+{coords && (
+  <p style={{ marginTop: '0.5rem' }}>
+    Selected: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+  </p>
+)}
 
 const defaultHouse = {
   address: '',
@@ -24,6 +37,9 @@ export default function HousesPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [fastMode, setFastMode] = useState(true);
+  const [savingQuick, setSavingQuick] = useState(false);
 
   async function loadHouses() {
     setError('');
@@ -107,9 +123,10 @@ export default function HousesPage() {
     });
   }, [houses, search, status]);
 
-  async function createHouse(e) {
+  async function createHouseOnly(e) {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     const { data, error: insertError } = await supabase
       .from('houses')
@@ -130,16 +147,17 @@ export default function HousesPage() {
     }
 
     setHouseForm(defaultHouse);
+    setSuccess('House saved.');
     await loadHouses();
     setSelectedHouse(data);
   }
 
   async function logVisit(e) {
     e.preventDefault();
-
     if (!selectedHouse?.id) return;
 
     setError('');
+    setSuccess('');
 
     const {
       data: { user },
@@ -169,7 +187,76 @@ export default function HousesPage() {
     }
 
     setVisitForm(defaultVisit);
+    setSuccess('Visit saved.');
     await loadHouses();
+  }
+
+  async function quickSave(statusValue, overrides = {}) {
+    if (!houseForm.address.trim()) {
+      setError('Enter an address first.');
+      return;
+    }
+
+    setSavingQuick(true);
+    setError('');
+    setSuccess('');
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      setSavingQuick(false);
+      setError(userError.message);
+      return;
+    }
+
+    const { data: createdHouse, error: houseError } = await supabase
+      .from('houses')
+      .insert([
+        {
+          address: houseForm.address,
+          city: houseForm.city,
+          state: houseForm.state,
+          zip: houseForm.zip,
+        },
+      ])
+      .select()
+      .single();
+
+    if (houseError) {
+      setSavingQuick(false);
+      setError(houseError.message);
+      return;
+    }
+
+const visitPayload = {
+  house_id: createdHouse.id,
+  user_id: user?.id || null,
+  status: statusValue,
+  material_left: overrides.material_left ?? visitForm.material_left,
+  service_type: overrides.service_type ?? visitForm.service_type,
+  notes: overrides.notes ?? visitForm.notes,
+  follow_up_date: overrides.follow_up_date ?? visitForm.follow_up_date || null,
+};
+
+    const { error: visitError } = await supabase
+      .from('visits')
+      .insert([visitPayload]);
+
+    if (visitError) {
+      setSavingQuick(false);
+      setError(visitError.message);
+      return;
+    }
+
+    setHouseForm(defaultHouse);
+    setVisitForm(defaultVisit);
+    setSuccess(`${statusValue} saved.`);
+    await loadHouses();
+    setSelectedHouse(createdHouse);
+    setSavingQuick(false);
   }
 
   return (
@@ -182,12 +269,169 @@ export default function HousesPage() {
       </div>
 
       {error && <div className="error-box">{error}</div>}
+      {success && <div className="success-box">{success}</div>}
+
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div className="fast-mode-header">
+          <div>
+            <h3 style={{ margin: 0 }}>Fast entry mode</h3>
+            <p style={{ margin: '0.35rem 0 0', color: '#475569' }}>
+              Built for walking house to house with fewer taps.
+            </p>
+          </div>
+          <button
+            type="button"
+            className={fastMode ? '' : 'secondary'}
+            onClick={() => setFastMode((v) => !v)}
+          >
+            {fastMode ? 'Fast mode on' : 'Fast mode off'}
+          </button>
+        </div>
+
+        {fastMode && (
+          <div className="fast-entry-grid">
+            <div className="card soft-card">
+              <h3>Quick house</h3>
+              <div className="stack-form">
+                <input
+                  placeholder="Address"
+                  value={houseForm.address}
+                  onChange={(e) =>
+                    setHouseForm({ ...houseForm, address: e.target.value })
+                  }
+                />
+                <div className="split-2">
+                  <input
+                    placeholder="City"
+                    value={houseForm.city}
+                    onChange={(e) =>
+                      setHouseForm({ ...houseForm, city: e.target.value })
+                    }
+                  />
+                  <input
+                    placeholder="ZIP"
+                    value={houseForm.zip}
+                    onChange={(e) =>
+                      setHouseForm({ ...houseForm, zip: e.target.value })
+                    }
+                  />
+                </div>
+                <select
+                  value={visitForm.service_type}
+                  onChange={(e) =>
+                    setVisitForm({
+                      ...visitForm,
+                      service_type: e.target.value,
+                    })
+                  }
+                >
+                  <option>Both</option>
+                  <option>Irrigation</option>
+                  <option>Lighting</option>
+                  <option>Unknown</option>
+                </select>
+                <textarea
+                  placeholder="Quick notes (optional)"
+                  value={visitForm.notes}
+                  onChange={(e) =>
+                    setVisitForm({ ...visitForm, notes: e.target.value })
+                  }
+                  rows={3}
+                />
+                <input
+                  type="date"
+                  value={visitForm.follow_up_date}
+                  onChange={(e) =>
+                    setVisitForm({
+                      ...visitForm,
+                      follow_up_date: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="card soft-card">
+              <h3>One-tap actions</h3>
+              <div className="quick-action-grid">
+                <button
+                  type="button"
+                  className="quick-action"
+                  disabled={savingQuick}
+                  onClick={() =>
+                    quickSave('Flyer Left', {
+                      material_left: 'Partnership flyer',
+                    })
+                  }
+                >
+                  Flyer Left
+                </button>
+
+                <button
+                  type="button"
+                  className="quick-action"
+                  disabled={savingQuick}
+                  onClick={() =>
+                    quickSave('Door Hanger Left', {
+                      material_left: 'Door hanger',
+                    })
+                  }
+                >
+                  Door Hanger Left
+                </button>
+
+                <button
+                  type="button"
+                  className="quick-action"
+                  disabled={savingQuick}
+                  onClick={() =>
+                    quickSave('Interested', {
+                      material_left: 'Partnership flyer',
+                    })
+                  }
+                >
+                  Interested
+                </button>
+
+                <button
+                  type="button"
+                  className="quick-action danger"
+                  disabled={savingQuick}
+                  onClick={() =>
+                    quickSave('No Soliciting', {
+                      material_left: 'None',
+                    })
+                  }
+                >
+                  No Soliciting
+                </button>
+              </div>
+
+              <div style={{ marginTop: '0.9rem' }}>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={savingQuick}
+                  onClick={() => {
+                    setHouseForm(defaultHouse);
+                    setVisitForm(defaultVisit);
+                    setError('');
+                    setSuccess('');
+                  }}
+                >
+                  Clear form
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="two-column">
         <div>
           <div className="card">
             <h3>Add house</h3>
-            <form onSubmit={createHouse} className="stack-form">
+            <form onSubmit={createHouseOnly} className="stack-form">
               <input
                 placeholder="Address"
                 value={houseForm.address}
