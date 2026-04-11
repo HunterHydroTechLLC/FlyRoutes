@@ -29,9 +29,65 @@ export default function HousesPage() {
   const [fastMode, setFastMode] = useState(true);
   const [savingQuick, setSavingQuick] = useState(false);
   const [coords, setCoords] = useState(null);
+  const [geocoding, setGeocoding] = useState(false);
 
-  function handleMapSelect(latlng) {
+  async function reverseGeocode(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Could not look up address from map point.');
+    }
+
+    return response.json();
+  }
+
+  async function handleMapSelect(latlng) {
     setCoords(latlng);
+    setError('');
+    setSuccess('');
+    setGeocoding(true);
+
+    try {
+      const result = await reverseGeocode(latlng.lat, latlng.lng);
+      const address = result.address || {};
+
+      const houseNumber = address.house_number || '';
+      const road =
+        address.road ||
+        address.residential ||
+        address.pedestrian ||
+        address.footway ||
+        '';
+      const city =
+        address.city ||
+        address.town ||
+        address.village ||
+        address.hamlet ||
+        '';
+      const postcode = address.postcode || '';
+
+      const line1 = [houseNumber, road].filter(Boolean).join(' ').trim();
+
+      setHouseForm((prev) => ({
+        ...prev,
+        address: line1 || prev.address,
+        city: city || prev.city,
+        state: 'MI',
+        zip: postcode || prev.zip,
+      }));
+
+      setSuccess('Map point selected. Address filled in.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGeocoding(false);
+    }
   }
 
   async function loadHouses() {
@@ -191,7 +247,7 @@ export default function HousesPage() {
 
   async function quickSave(statusValue, overrides = {}) {
     if (!houseForm.address.trim()) {
-      setError('Enter an address first.');
+      setError('Tap a house on the map or enter an address first.');
       return;
     }
 
@@ -278,7 +334,7 @@ export default function HousesPage() {
           <div>
             <h3 style={{ margin: 0 }}>Fast entry mode</h3>
             <p style={{ margin: '0.35rem 0 0', color: '#475569' }}>
-              Built for walking house to house with fewer taps.
+              Tap the map, let it fill the address, then hit a quick action.
             </p>
           </div>
 
@@ -297,6 +353,20 @@ export default function HousesPage() {
               <h3>Quick house</h3>
 
               <div className="stack-form">
+                <MapPicker onSelect={handleMapSelect} />
+
+                {coords && (
+                  <p style={{ marginTop: '0.5rem' }}>
+                    Selected: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                  </p>
+                )}
+
+                {geocoding && (
+                  <p style={{ marginTop: '0.25rem', color: '#475569' }}>
+                    Looking up address...
+                  </p>
+                )}
+
                 <input
                   placeholder="Address"
                   value={houseForm.address}
@@ -357,14 +427,6 @@ export default function HousesPage() {
                     })
                   }
                 />
-
-                <MapPicker onSelect={handleMapSelect} />
-
-                {coords && (
-                  <p style={{ marginTop: '0.5rem' }}>
-                    Selected: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -375,7 +437,7 @@ export default function HousesPage() {
                 <button
                   type="button"
                   className="quick-action"
-                  disabled={savingQuick}
+                  disabled={savingQuick || geocoding}
                   onClick={() =>
                     quickSave('Flyer Left', {
                       material_left: 'Partnership flyer',
@@ -388,7 +450,7 @@ export default function HousesPage() {
                 <button
                   type="button"
                   className="quick-action"
-                  disabled={savingQuick}
+                  disabled={savingQuick || geocoding}
                   onClick={() =>
                     quickSave('Door Hanger Left', {
                       material_left: 'Door hanger',
@@ -401,7 +463,7 @@ export default function HousesPage() {
                 <button
                   type="button"
                   className="quick-action"
-                  disabled={savingQuick}
+                  disabled={savingQuick || geocoding}
                   onClick={() =>
                     quickSave('Interested', {
                       material_left: 'Partnership flyer',
@@ -414,7 +476,7 @@ export default function HousesPage() {
                 <button
                   type="button"
                   className="quick-action danger"
-                  disabled={savingQuick}
+                  disabled={savingQuick || geocoding}
                   onClick={() =>
                     quickSave('No Soliciting', {
                       material_left: 'None',
@@ -429,7 +491,7 @@ export default function HousesPage() {
                 <button
                   type="button"
                   className="secondary"
-                  disabled={savingQuick}
+                  disabled={savingQuick || geocoding}
                   onClick={() => {
                     setHouseForm(defaultHouse);
                     setVisitForm(defaultVisit);
