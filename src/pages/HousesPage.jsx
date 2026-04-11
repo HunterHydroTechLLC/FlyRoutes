@@ -131,18 +131,29 @@ export default function HousesPage() {
       }
     }
 
-    const merged = safeHouses.map((house) => {
-      const latestVisit = latestByHouse.get(house.id);
+const merged = safeHouses.map((house) => {
+  const latestVisit = latestByHouse.get(house.id);
 
-      return {
-        ...house,
-        latest_status: latestVisit?.status || '',
-        material_left: latestVisit?.material_left || '',
-        service_type: latestVisit?.service_type || '',
-        notes: latestVisit?.notes || '',
-        follow_up_date: latestVisit?.follow_up_date || '',
-      };
-    });
+  return {
+    ...house,
+
+    // ✅ THIS IS THE FIX (force numbers for map markers)
+    latitude:
+      house.latitude !== null && house.latitude !== undefined
+        ? Number(house.latitude)
+        : null,
+    longitude:
+      house.longitude !== null && house.longitude !== undefined
+        ? Number(house.longitude)
+        : null,
+
+    latest_status: latestVisit?.status || '',
+    material_left: latestVisit?.material_left || '',
+    service_type: latestVisit?.service_type || '',
+    notes: latestVisit?.notes || '',
+    follow_up_date: latestVisit?.follow_up_date || '',
+  };
+});
 
     setHouses(merged);
 
@@ -353,7 +364,26 @@ export default function HousesPage() {
               <h3>Quick house</h3>
 
               <div className="stack-form">
-                <MapPicker onSelect={handleMapSelect} />
+                <MapPicker
+  onSelectNewPoint={handleMapSelect}
+  savedHouses={houses}
+  onSelectSavedHouse={(house) => {
+    setSelectedHouse(house);
+    setCoords(
+      house.latitude && house.longitude
+        ? { lat: house.latitude, lng: house.longitude }
+        : null
+    );
+    setHouseForm({
+      address: house.address || '',
+      city: house.city || '',
+      state: house.state || 'MI',
+      zip: house.zip || '',
+    });
+    setSuccess(`Loaded saved house: ${house.address}`);
+    setError('');
+  }}
+/>
 
                 {coords && (
                   <p style={{ marginTop: '0.5rem' }}>
