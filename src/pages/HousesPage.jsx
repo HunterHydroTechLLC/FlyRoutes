@@ -77,6 +77,7 @@ export default function HousesPage() {
 
     const merged = safeHouses.map((house) => {
       const latestVisit = latestByHouse.get(house.id);
+
       return {
         ...house,
         latest_status: latestVisit?.status || '',
@@ -150,6 +151,7 @@ export default function HousesPage() {
 
   async function logVisit(e) {
     e.preventDefault();
+
     if (!selectedHouse?.id) return;
 
     setError('');
@@ -237,7 +239,7 @@ export default function HousesPage() {
       service_type: overrides.service_type ?? visitForm.service_type,
       notes: overrides.notes ?? visitForm.notes,
       follow_up_date:
-        overrides.follow_up_date ?? visitForm.follow_up_date || null,
+        overrides.follow_up_date ?? (visitForm.follow_up_date || null),
     };
 
     const { error: visitError } = await supabase
@@ -279,6 +281,7 @@ export default function HousesPage() {
               Built for walking house to house with fewer taps.
             </p>
           </div>
+
           <button
             type="button"
             className={fastMode ? '' : 'secondary'}
@@ -292,6 +295,7 @@ export default function HousesPage() {
           <div className="fast-entry-grid">
             <div className="card soft-card">
               <h3>Quick house</h3>
+
               <div className="stack-form">
                 <input
                   placeholder="Address"
@@ -300,6 +304,7 @@ export default function HousesPage() {
                     setHouseForm({ ...houseForm, address: e.target.value })
                   }
                 />
+
                 <div className="split-2">
                   <input
                     placeholder="City"
@@ -308,6 +313,7 @@ export default function HousesPage() {
                       setHouseForm({ ...houseForm, city: e.target.value })
                     }
                   />
+
                   <input
                     placeholder="ZIP"
                     value={houseForm.zip}
@@ -316,6 +322,7 @@ export default function HousesPage() {
                     }
                   />
                 </div>
+
                 <select
                   value={visitForm.service_type}
                   onChange={(e) =>
@@ -330,6 +337,7 @@ export default function HousesPage() {
                   <option>Lighting</option>
                   <option>Unknown</option>
                 </select>
+
                 <textarea
                   placeholder="Quick notes (optional)"
                   value={visitForm.notes}
@@ -338,6 +346,7 @@ export default function HousesPage() {
                   }
                   rows={3}
                 />
+
                 <input
                   type="date"
                   value={visitForm.follow_up_date}
@@ -361,6 +370,7 @@ export default function HousesPage() {
 
             <div className="card soft-card">
               <h3>One-tap actions</h3>
+
               <div className="quick-action-grid">
                 <button
                   type="button"
@@ -440,6 +450,7 @@ export default function HousesPage() {
         <div>
           <div className="card">
             <h3>Add house</h3>
+
             <form onSubmit={createHouseOnly} className="stack-form">
               <input
                 placeholder="Address"
@@ -449,6 +460,7 @@ export default function HousesPage() {
                 }
                 required
               />
+
               <div className="split-2">
                 <input
                   placeholder="City"
@@ -458,6 +470,7 @@ export default function HousesPage() {
                   }
                   required
                 />
+
                 <input
                   placeholder="ZIP"
                   value={houseForm.zip}
@@ -467,18 +480,21 @@ export default function HousesPage() {
                   required
                 />
               </div>
+
               <button type="submit">Save house</button>
             </form>
           </div>
 
           <div className="card">
             <h3>Search houses</h3>
+
             <div className="split-2">
               <input
                 placeholder="Search address or city"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+
               <select value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">All statuses</option>
                 <option>Flyer Left</option>
@@ -493,6 +509,7 @@ export default function HousesPage() {
 
           <div className="card list-card">
             <h3>House log</h3>
+
             {filteredHouses.length === 0 ? (
               <p>No houses found yet.</p>
             ) : (
@@ -522,9 +539,12 @@ export default function HousesPage() {
         <div>
           <div className="card">
             <h3>Selected house</h3>
+
             {selectedHouse ? (
               <>
-                <p><strong>{selectedHouse.address}</strong></p>
+                <p>
+                  <strong>{selectedHouse.address}</strong>
+                </p>
                 <p>
                   {selectedHouse.city}, {selectedHouse.state} {selectedHouse.zip}
                 </p>
@@ -540,6 +560,7 @@ export default function HousesPage() {
 
           <div className="card">
             <h3>Log visit</h3>
+
             <form onSubmit={logVisit} className="stack-form">
               <select
                 value={visitForm.status}

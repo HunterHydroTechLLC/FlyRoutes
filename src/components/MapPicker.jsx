@@ -1,5 +1,5 @@
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { useEffect, useMemo, useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
 const markerIcon = new L.Icon({
