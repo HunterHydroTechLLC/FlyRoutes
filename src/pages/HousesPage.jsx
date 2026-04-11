@@ -4,7 +4,7 @@ import MapPicker from '../components/MapPicker';
 
 const defaultHouse = {
   address: '',
-  city: 'Sterling Heights',
+  city: '',
   state: 'MI',
   zip: '',
 };
